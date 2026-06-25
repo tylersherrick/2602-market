@@ -1,12 +1,12 @@
 import express from "express";
-const app = express();
-export default app;
-
 import morgan from "morgan";
+
 import getUserFromToken from "#middleware/getUserFromToken";
 import orderRouter from "#api/orders";
 import productRouter from "#api/products";
 import userRouter from "#api/users";
+
+const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -34,3 +34,5 @@ app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).send("Sorry! Something went wrong.");
 });
+
+export default app;

@@ -1,49 +1,71 @@
 import express from "express";
 const router = express.Router();
-export default router;
 
 import {
-    createOrder,
-    getOrderById,
-    getOrdersByUserId
+  createOrder,
+  getOrderById,
+  getOrdersByUserId
 } from "#db/queries/orders";
+
 import { createOrderProduct } from "#db/queries/orders_products";
-import { getOrdersByProductId } from "#db/queries/orders";
+import { getProductById } from "#db/queries/products";
+
 import requireUser from "#middleware/requireUser";
 import requireBody from "#middleware/requireBody";
 
 router.use(requireUser);
 
-router.get("/", async(req, res) => {
-    const orders = await getOrdersByUserId(req.user.id);
-    res.send(orders);
+router.get("/", async (req, res) => {
+  const orders = await getOrdersByUserId(req.user.id);
+  res.send(orders);
 });
 
-router.post("/", requireBody(["date", "note", "user_id"]), async(req, res) => {
-    const { date, note, user_id } = req.body;
-    const order = await createOrder(date, note, req.user.id);
-    res.status(201).send(order);
+router.post("/", requireBody(["date"]), async (req, res) => {
+  const { date, note } = req.body;
+  const order = await createOrder(date, note, req.user.id);
+  res.status(201).send(order);
 });
 
-router.param("id", async(req, res, next, id) => {
-    const order = await getOrderById(id);
-    if(!order) return res.status(404).send("Order not found.");
-    if(order.user_id !== req.user.id) return res.status(403).send("No permission to access this order");
-    req.order = order;
-    next();
+router.param("id", async (req, res, next, id) => {
+  const order = await getOrderById(id);
+
+  if (!order) return res.status(404).send("Order not found.");
+
+  if (order.user_id !== req.user.id) {
+    return res.status(403).send("No permission to access this order");
+  }
+
+  req.order = order;
+  next();
 });
 
 router.get("/:id", (req, res) => {
-    res.send(req.order);
+  res.send(req.order);
 });
 
-router.get("/:id/orders", async(req, res) => {
-    const orders= await getOrdersByProductId(req.product.id);
-    res.send(orders);
+router.get("/:id/products", async (req, res) => {
+  const { getProductsByOrderId } = await import("#db/queries/products");
+  const products = await getProductsByOrderId(req.order.id);
+  res.send(products);
 });
 
-router.post("/:id/orders", requireBody(["orderId"]), async(req, res) => {
-    const { orderId } = req.body;
-    const orderProduct = await createOrderProduct(req.order.id, productId);
+router.post(
+  "/:id/products",
+  requireBody(["productId", "quantity"]),
+  async (req, res) => {
+    const { productId, quantity } = req.body;
+
+    const product = await getProductById(productId);
+    if (!product) return res.status(400).send("Invalid productId");
+
+    const orderProduct = await createOrderProduct(
+      req.order.id,
+      productId,
+      quantity
+    );
+
     res.status(201).send(orderProduct);
-});
+  }
+);
+
+export default router;

@@ -1,13 +1,19 @@
 import db from "#db/client";
 
-export async function createOrderProduct(orderId, productId) {
-    const sql = `
-        INSERT INTO orders_products
-            (orders_id, products_id)
-        VALUES
-            ($1. $2)
-        RETURNING *
-    `;
-    const { rows: [orderProducts], } = await db.query(sql, [orderId, productId]);
-    return orderProducts;
+export async function createOrderProduct(orderId, productId, quantity) {
+  const sql = `
+    INSERT INTO orders_products
+      (order_id, product_id, quantity)
+    VALUES
+      ($1, $2, $3)
+    RETURNING *;
+  `;
+
+  const { rows: [orderProduct] } = await db.query(sql, [
+    orderId,
+    productId,
+    quantity
+  ]);
+
+  return orderProduct;
 }
